@@ -1370,9 +1370,10 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
 
         # nodepool add
         self.cmd(
-            'aks nodepool add --resource-group={resource_group} --cluster-name={name} --name={nodepool2_name} --os-type Windows --node-count=1',
+            'aks nodepool add --resource-group={resource_group} --cluster-name={name} --name={nodepool2_name} --os-type Windows --node-count=1 --os-sku Windows2019',
             checks=[
-                self.check('provisioningState', 'Succeeded')
+                self.check('provisioningState', 'Succeeded'),
+                self.check('osSku', 'Windows2019'),
             ])
 
         # update Windows license type
