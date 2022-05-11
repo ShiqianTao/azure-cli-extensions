@@ -1337,14 +1337,16 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
             'aks delete -g {resource_group} -n {name} --yes --no-wait', checks=[self.is_empty()])
 
     @AllowLargeResponse()
-    @AKSCustomResourceGroupPreparer(random_name_length=17, name_prefix='clitest', location='eastus')
+    @AKSCustomResourceGroupPreparer(random_name_length=17, name_prefix='clitest', location='westcentralus')
     def test_aks_nodepool_add_with_windows_ossku(self, resource_group, resource_group_location):
         aks_name = self.create_random_name('clishtao', 16)
+        _, create_version = self._get_versions(resource_group_location)
         self.kwargs.update({
             'resource_group': resource_group,
             'name': aks_name,
             'dns_name_prefix': self.create_random_name('cliaksdns', 16),
             'location': resource_group_location,
+            'k8s_version': create_version,
             'resource_type': 'Microsoft.ContainerService/ManagedClusters',
             'windows_admin_username': 'azureuser1',
             'windows_admin_password': 'replace-Password1234$',
