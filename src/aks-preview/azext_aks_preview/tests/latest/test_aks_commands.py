@@ -1342,7 +1342,8 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
         # reset the count so in replay mode the random names will start with 0
         self.test_resources_count = 0
         # kwargs for string formatting
-        aks_name = self.create_random_name('cliakstest', 16)
+        aks_name = self.create_random_name('clishtao', 16)
+        _, upgrade_version = self._get_versions(resource_group_location)
         self.kwargs.update({
             'resource_group': resource_group,
             'name': aks_name,
@@ -1352,7 +1353,7 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
             'windows_admin_username': 'azureuser1',
             'windows_admin_password': 'replace-Password1234$',
             'nodepool2_name': 'npwin',
-            'k8s_version': '1.23.3',
+            'k8s_version': upgrade_version,
             'ssh_key_value': self.generate_ssh_keys()
         })
 
@@ -1376,17 +1377,6 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
                 self.check('provisioningState', 'Succeeded'),
                 self.check('osSku', 'Windows2022'),
             ])
-
-        # update Windows license type
-        self.cmd('aks update --resource-group={resource_group} --name={name} --enable-ahub', checks=[
-            self.check('provisioningState', 'Succeeded'),
-            self.check('windowsProfile.licenseType', 'Windows_Server')
-        ])
-
-        # nodepool delete
-        self.cmd(
-            'aks nodepool delete --resource-group={resource_group} --cluster-name={name} --name={nodepool2_name} --no-wait',
-            checks=[self.is_empty()])
 
         # delete
         self.cmd(
