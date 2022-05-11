@@ -1371,10 +1371,10 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
                  '--name={windows_nodepool_name} '
                  '--node-count=1',
                  '--os-type Windows',
-                 '--os-sku Windows2022',
+                 '--os-sku Windows2019',
                  checks=[
                      self.check('provisioningState', 'Succeeded'),
-                     self.check('osSku', 'Windows2022'),
+                     self.check('osSku', 'Windows2019'),
                  ])
 
         # delete
