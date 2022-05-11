@@ -1352,6 +1352,7 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
             'windows_admin_username': 'azureuser1',
             'windows_admin_password': 'replace-Password1234$',
             'nodepool2_name': 'npwin',
+            'k8s_version': '1.23.3',
             'ssh_key_value': self.generate_ssh_keys()
         })
 
@@ -1360,7 +1361,7 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
                      '--dns-name-prefix={dns_name_prefix} --node-count=1 ' \
                      '--windows-admin-username={windows_admin_username} --windows-admin-password={windows_admin_password} ' \
                      '--load-balancer-sku=standard --vm-set-type=virtualmachinescalesets --network-plugin=azure ' \
-                     '--ssh-key-value={ssh_key_value}'
+                     '--ssh-key-value={ssh_key_value} --kubernetes-version={k8s_version}'
         self.cmd(create_cmd, checks=[
             self.exists('fqdn'),
             self.exists('nodeResourceGroup'),
