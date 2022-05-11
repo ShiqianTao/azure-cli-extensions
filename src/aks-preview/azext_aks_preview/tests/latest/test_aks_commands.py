@@ -1337,13 +1337,12 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
             'aks delete -g {resource_group} -n {name} --yes --no-wait', checks=[self.is_empty()])
 
     @AllowLargeResponse()
-    @AKSCustomResourceGroupPreparer(random_name_length=17, name_prefix='clitest', location='westcentralus')
-    def test_aks_nodepool_add_with_windows_ossku(self, resource_group, resource_group_location):
+    @AKSCustomResourceGroupPreparer(random_name_length=17, name_prefix='clitest', location='eastus')
+    def test_aks_nodepool_add_with_ossku_windows2019(self, resource_group, resource_group_location):
         # reset the count so in replay mode the random names will start with 0
         self.test_resources_count = 0
         # kwargs for string formatting
-        aks_name = self.create_random_name('clishtao', 16)
-        _, upgrade_version = self._get_versions(resource_group_location)
+        aks_name = self.create_random_name('cliakstest', 16)
         self.kwargs.update({
             'resource_group': resource_group,
             'name': aks_name,
@@ -1352,8 +1351,62 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
             'resource_type': 'Microsoft.ContainerService/ManagedClusters',
             'windows_admin_username': 'azureuser1',
             'windows_admin_password': 'replace-Password1234$',
-            'nodepool2_name': 'npwin',
-            'k8s_version': upgrade_version,
+            'windows_nodepool_name': 'npwin',
+            'ssh_key_value': self.generate_ssh_keys()
+        })
+
+        # create cluster which support Windows
+        create_cmd = 'aks create --resource-group={resource_group} --name={name} --location={location} ' \
+                     '--dns-name-prefix={dns_name_prefix} --node-count=1 ' \
+                     '--windows-admin-username={windows_admin_username} --windows-admin-password={windows_admin_password} ' \
+                     '--load-balancer-sku=standard --vm-set-type=virtualmachinescalesets --network-plugin=azure ' \
+                     '--ssh-key-value={ssh_key_value}'
+        self.cmd(create_cmd, checks=[
+            self.exists('fqdn'),
+            self.exists('nodeResourceGroup'),
+            self.check('provisioningState', 'Succeeded'),
+            self.check('windowsProfile.adminUsername', 'azureuser1')
+        ])
+
+        # add Windows2019 nodepool
+        self.cmd('aks nodepool add '
+                 '--resource-group={resource_group} '
+                 '--cluster-name={name} '
+                 '--name={windows_nodepool_name} '
+                 '--node-count=1 '
+                 '--os-type Windows '
+                 '--os-sku Windows2019',
+            checks=[
+                self.check('provisioningState', 'Succeeded'),
+                self.check('osSku', 'Windows2019'),
+            ])
+
+        # delete
+        self.cmd(
+            'aks delete -g {resource_group} -n {name} --yes --no-wait', checks=[self.is_empty()])
+
+    @AllowLargeResponse()
+    @AKSCustomResourceGroupPreparer(random_name_length=17, name_prefix='clitest', location='eastus')
+    def test_aks_nodepool_add_with_ossku_windows2022(self, resource_group, resource_group_location):
+        # it is different from case test_aks_nodepool_add_with_ossku_windows2019
+        # at present the sub needs preview feature registration to support Windows2022
+        # bypass this case and manually test it by 'https://dev.azure.com/msazure/CloudNativeCompute/_build?definitionId=219428&_a=summary'
+
+        # reset the count so in replay mode the random names will start with 0
+        self.test_resources_count = 0
+        # kwargs for string formatting
+        aks_name = self.create_random_name('cliakstest', 16)
+        _, create_version = self._get_versions(resource_group_location)
+        self.kwargs.update({
+            'resource_group': resource_group,
+            'name': aks_name,
+            'dns_name_prefix': self.create_random_name('cliaksdns', 16),
+            'location': resource_group_location,
+            'resource_type': 'Microsoft.ContainerService/ManagedClusters',
+            'windows_admin_username': 'azureuser1',
+            'windows_admin_password': 'replace-Password1234$',
+            'windows_nodepool_name': 'npwin',
+            'k8s_version': create_version,
             'ssh_key_value': self.generate_ssh_keys()
         })
 
@@ -1370,13 +1423,103 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
             self.check('windowsProfile.adminUsername', 'azureuser1')
         ])
 
-        # nodepool add
-        self.cmd(
-            'aks nodepool add --resource-group={resource_group} --cluster-name={name} --name={nodepool2_name} --os-type Windows --node-count=1 --os-sku Windows2022',
+        # add Windows2022 nodepool
+        self.cmd('aks nodepool add '
+                 '--resource-group={resource_group} '
+                 '--cluster-name={name} '
+                 '--name={windows_nodepool_name} '
+                 '--node-count=1 '
+                 '--os-type Windows '
+                 '--os-sku Windows2022',
             checks=[
                 self.check('provisioningState', 'Succeeded'),
                 self.check('osSku', 'Windows2022'),
             ])
+
+        # delete
+        self.cmd(
+            'aks delete -g {resource_group} -n {name} --yes --no-wait', checks=[self.is_empty()])
+
+    @AllowLargeResponse()
+    @AKSCustomResourceGroupPreparer(random_name_length=17, name_prefix='clitest', location='eastus')
+    def test_aks_nodepool_add_with_ossku_windows_error(self, resource_group, resource_group_location):
+        # reset the count so in replay mode the random names will start with 0
+        self.test_resources_count = 0
+        # kwargs for string formatting
+        aks_name = self.create_random_name('cliakstest', 16)
+        self.kwargs.update({
+            'resource_group': resource_group,
+            'name': aks_name,
+            'dns_name_prefix': self.create_random_name('cliaksdns', 16),
+            'location': resource_group_location,
+            'resource_type': 'Microsoft.ContainerService/ManagedClusters',
+            'windows_admin_username': 'azureuser1',
+            'windows_admin_password': 'replace-Password1234$',
+            'windows_nodepool_name': 'npwin',
+            'ssh_key_value': self.generate_ssh_keys()
+        })
+
+        # create cluster which support Windows
+        create_cmd = 'aks create --resource-group={resource_group} --name={name} --location={location} ' \
+                     '--dns-name-prefix={dns_name_prefix} --node-count=1 ' \
+                     '--windows-admin-username={windows_admin_username} --windows-admin-password={windows_admin_password} ' \
+                     '--load-balancer-sku=standard --vm-set-type=virtualmachinescalesets --network-plugin=azure ' \
+                     '--ssh-key-value={ssh_key_value}'
+        self.cmd(create_cmd, checks=[
+            self.exists('fqdn'),
+            self.exists('nodeResourceGroup'),
+            self.check('provisioningState', 'Succeeded'),
+            self.check('windowsProfile.adminUsername', 'azureuser1')
+        ])
+
+        # add error os-sku for Windows nodepool
+        nodepool_cmd = 'aks nodepool add ' \
+                 '--resource-group={resource_group} ' \
+                 '--cluster-name={name} ' \
+                 '--name={windows_nodepool_name} ' \
+                 '--node-count=1 ' \
+                 '--os-type Windows ' \
+                 '--os-sku Ubuntu'
+
+        with self.assertRaisesRegexp(CLIError):
+            self.cmd(nodepool_cmd)
+
+        # delete
+        self.cmd(
+            'aks delete -g {resource_group} -n {name} --yes --no-wait', checks=[self.is_empty()])
+
+    @AllowLargeResponse()
+    @AKSCustomResourceGroupPreparer(random_name_length=17, name_prefix='clitest', location='eastus')
+    def test_aks_nodepool_add_with_ossku_linux_error(self, resource_group, resource_group_location):
+        aks_name = self.create_random_name('cliakstest', 16)
+        node_pool_name = self.create_random_name('c', 6)
+        node_pool_name_second = self.create_random_name('c', 6)
+        self.kwargs.update({
+            'resource_group': resource_group,
+            'name': aks_name,
+            'node_pool_name': node_pool_name,
+            'node_pool_name_second': node_pool_name_second,
+            'ssh_key_value': self.generate_ssh_keys()
+        })
+
+        create_cmd = 'aks create --resource-group={resource_group} --name={name} ' \
+                     '--nodepool-name {node_pool_name} -c 1 ' \
+                     '--ssh-key-value={ssh_key_value}'
+        self.cmd(create_cmd, checks=[
+            self.check('provisioningState', 'Succeeded'),
+        ])
+
+        # add error os-sku for Linux nodepool
+        nodepool_cmd = 'aks nodepool add ' \
+                 '--resource-group={resource_group} ' \
+                 '--cluster-name={name} ' \
+                 '--name={node_pool_name_second} ' \
+                 '--node-count=1 ' \
+                 '--os-type Linux ' \
+                 '--os-sku Windows2022'
+
+        with self.assertRaisesRegexp(CLIError):
+            self.cmd(nodepool_cmd)
 
         # delete
         self.cmd(
