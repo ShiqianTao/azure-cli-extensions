@@ -1339,18 +1339,19 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
     @AllowLargeResponse()
     @AKSCustomResourceGroupPreparer(random_name_length=17, name_prefix='clitest', location='westcentralus')
     def test_aks_nodepool_add_with_windows_ossku(self, resource_group, resource_group_location):
-        aks_name = self.create_random_name('clishtao', 16)
-        _, create_version = self._get_versions(resource_group_location)
+        # reset the count so in replay mode the random names will start with 0
+        self.test_resources_count = 0
+        # kwargs for string formatting
+        aks_name = self.create_random_name('cliakstest', 16)
         self.kwargs.update({
             'resource_group': resource_group,
             'name': aks_name,
             'dns_name_prefix': self.create_random_name('cliaksdns', 16),
             'location': resource_group_location,
-            'k8s_version': create_version,
             'resource_type': 'Microsoft.ContainerService/ManagedClusters',
             'windows_admin_username': 'azureuser1',
             'windows_admin_password': 'replace-Password1234$',
-            'windows_nodepool_name': 'npwin',
+            'nodepool2_name': 'npwin',
             'ssh_key_value': self.generate_ssh_keys()
         })
 
@@ -1361,19 +1362,29 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
                      '--load-balancer-sku=standard --vm-set-type=virtualmachinescalesets --network-plugin=azure ' \
                      '--ssh-key-value={ssh_key_value}'
         self.cmd(create_cmd, checks=[
+            self.exists('fqdn'),
+            self.exists('nodeResourceGroup'),
             self.check('provisioningState', 'Succeeded'),
+            self.check('windowsProfile.adminUsername', 'azureuser1')
         ])
 
-        # nodepool get-upgrades
-        self.cmd('aks nodepool add '
-                 '--resource-group={resource_group} '
-                 '--cluster-name={name} '
-                 '--name={windows_nodepool_name} '
-                 '--node-count=1',
-                 '--os-type Windows',
-                 checks=[
-                     self.check('provisioningState', 'Succeeded'),
-                 ])
+        # nodepool add
+        self.cmd(
+            'aks nodepool add --resource-group={resource_group} --cluster-name={name} --name={nodepool2_name} --os-type Windows --node-count=1',
+            checks=[
+                self.check('provisioningState', 'Succeeded')
+            ])
+
+        # update Windows license type
+        self.cmd('aks update --resource-group={resource_group} --name={name} --enable-ahub', checks=[
+            self.check('provisioningState', 'Succeeded'),
+            self.check('windowsProfile.licenseType', 'Windows_Server')
+        ])
+
+        # nodepool delete
+        self.cmd(
+            'aks nodepool delete --resource-group={resource_group} --cluster-name={name} --name={nodepool2_name} --no-wait',
+            checks=[self.is_empty()])
 
         # delete
         self.cmd(
