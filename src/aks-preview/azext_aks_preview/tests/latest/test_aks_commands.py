@@ -1339,7 +1339,7 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
     @AllowLargeResponse()
     @AKSCustomResourceGroupPreparer(random_name_length=17, name_prefix='clitest', location='eastus')
     def test_aks_nodepool_add_with_windows_ossku(self, resource_group, resource_group_location):
-        aks_name = self.create_random_name('cliakstest', 16)
+        aks_name = self.create_random_name('clishtao', 16)
         self.kwargs.update({
             'resource_group': resource_group,
             'name': aks_name,
@@ -1369,7 +1369,11 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
                  '--name={windows_nodepool_name} '
                  '--node-count=1',
                  '--os-type Windows',
-                 '--os-sku Windows2022')
+                 '--os-sku Windows2022',
+                 checks=[
+                     self.check('provisioningState', 'Succeeded'),
+                     self.check('osSku', 'Windows2022'),
+                 ])
 
         # delete
         self.cmd(
