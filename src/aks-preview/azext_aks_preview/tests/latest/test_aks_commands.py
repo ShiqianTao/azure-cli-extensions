@@ -1371,8 +1371,7 @@ class AzureKubernetesServiceScenarioTest(ScenarioTest):
                  '--os-type Windows',
                  '--os-sku Windows2022',
                  checks=[
-                     self.check('provisioningState', 'Succeeded'),
-                     self.check('osSku', 'Windows2022'),
+                     self.check('provisioningState', 'Succeeded')
                  ])
 
         # delete
